@@ -1,29 +1,25 @@
 /* eslint-disable no-unused-vars */
 import React, { useCallback } from "react";
-import { FiMenu } from "react-icons/fi";
-import { FaShoppingCart, FaCog } from "react-icons/fa";
-import { useNavigate, useLocation } from "react-router-dom";
+import { FiMenu } from "react-icons/fi"; // Menu icon
+import { FaShoppingCart, FaCog } from "react-icons/fa"; // Cart and Settings icons
+import { useNavigate, useLocation } from "react-router-dom"; //For navigation and active route tracking
 import useGlobalVars from "../UserContext";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // const user = {
-  //   name: "Amanda",
-  //   profilePic: "images/profile.jpg",
-  //   isLoggedIn: false,
-  // };
+  
 
   const {user, logoutUser} = useGlobalVars();
-
+  // Navigate to a new path when a nav item is clicked
   const handleNavigation = useCallback(
     (path) => {
       navigate(path);
     },
     [navigate]
   );
-
+ // Handles user logout
   const handleLogout = () => {
     logoutUser(); // Call the logout function from GlobalVars
   };
@@ -94,7 +90,7 @@ const Navbar = () => {
                 style={{ cursor: "pointer" }}
               >
                 <img
-                  src={"https://i.imgur.com/GPee7gF.jpg"}
+                  src={"https://i.imgur.com/GPee7gF.jpg"} //placeholder for profile pic
                   alt="Profile"
                   className="rounded-circle me-2"
                   style={{ width: "40px", height: "40px" }}
@@ -113,7 +109,7 @@ const Navbar = () => {
                 ></span>
               </div>
 
-              {/* Profile Info */}
+              {/*user Profile Info */}
               <div
                 className="d-flex flex-column me-3"
                 onClick={() => handleNavigation("/profile")}
@@ -125,10 +121,7 @@ const Navbar = () => {
                 </span>
               </div>
 
-              {/* Settings Icon */}
-              {/* <button className="btn me-2" onClick={() => handleNavigation("/settings")}>
-                <FaCog className="fs-5 text-dark" />
-              </button> */}
+              
 
               {/* Logout Button */}
               <button
@@ -139,6 +132,8 @@ const Navbar = () => {
               </button>
             </div>
           ) : (
+
+            // If not logged in, show login button 
             <button
               className="btn btn-primary me-3 py-1"
               onClick={() => handleNavigation("/login")}

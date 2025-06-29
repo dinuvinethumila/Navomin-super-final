@@ -1,33 +1,34 @@
-import React from "react";
+/* eslint-disable react/prop-types */
 
 const styles = {
+    // Overall card container style
   card: {
-    width: "100%",
-    height: "350px",
-    display: "flex",
-    flexDirection: "column",
-    border: "1px solid #ddd",
-    borderRadius: "6px",
-    overflow: "hidden",
-    boxShadow: "0 2px 6px rgba(0,0,0,0.1)",
+    width: "100%",    // Full width of parent
+    height: "350px",  // Fixed height
+    display: "flex", // Use flexbox layout
+    flexDirection: "column", // Stack children vertically
+    border: "1px solid #ddd",  // Light gray border
+    borderRadius: "6px", // Slightly rounded corners
+    overflow: "hidden",  // Clip overflowing child content
+    boxShadow: "0 2px 6px rgba(0,0,0,0.1)", // Subtle shadow
     backgroundColor: "white",
   },
   image: {
     height: "200px",
     width: "100%",
-    objectFit: "cover",
+    objectFit: "cover", // Crop and scale image to fill container
   },
   body: {
-    padding: "12px",
+    padding: "12px", // Inner spacing
     display: "flex",
     flexDirection: "column",
-    flexGrow: 1,
+    flexGrow: 1, // Allow it to grow to fill space
   },
   title: {
     fontSize: "1.1rem",
     marginBottom: "6px",
     fontWeight: 600,
-    flexShrink: 0,
+    flexShrink: 0,  // Prevent shrinking when container is tight
   },
   price: {
     marginTop: "auto",
