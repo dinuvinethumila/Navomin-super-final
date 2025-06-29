@@ -1,9 +1,13 @@
-
 import React, { useEffect, useState } from "react";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import "bootstrap/dist/css/bootstrap.min.css";
-import { getCartById, getCartItemById, addACart, deleteCartItem } from "../apis/cart.js";
+import {
+  getCartById,
+  getCartItemById,
+  addACart,
+  deleteCartItem,
+} from "../apis/cart.js";
 import {
   getCategory,
   getProducts,
@@ -17,6 +21,7 @@ const ShoppingCart = () => {
   const navigate = useNavigate();
   const { user } = useGlobalVars();
 
+  // UI and state management
   const [activeTab, setActiveTab] = useState("normal");
   const [cart, setCart] = useState(null);
   const [cartItems, setCartItems] = useState([]);
@@ -26,11 +31,16 @@ const ShoppingCart = () => {
   const [categories, setCategories] = useState([]);
   const [normalOrders, setNormalOrders] = useState([]);
   const [preOrders, setPreOrders] = useState([]);
+
+  // Input fields
   const [normalOrderPickupTime, setNormalOrderPickupTime] = useState("");
-  const [preOrderPickupDate, setPreOrderPickupDate] = useState(new Date().toISOString().split("T")[0]);
+  const [preOrderPickupDate, setPreOrderPickupDate] = useState(
+    new Date().toISOString().split("T")[0]
+  );
   const [preOrderPickupTime, setPreOrderPickupTime] = useState("");
   const [normalOrderPaymentMethod, setNormalOrderPaymentMethod] = useState("online");
 
+  // Date boundaries for pre-order pickup date
   const getDateString = (offsetDays = 0) => {
     const date = new Date();
     date.setDate(date.getDate() + offsetDays);
@@ -39,13 +49,15 @@ const ShoppingCart = () => {
   const minDate = getDateString(1);
   const maxDate = getDateString(30);
 
+  // Time validation function
   const isValidPickupTime = (time) => {
     if (!time) return false;
-    const [hours, minutes] = time.split(":" ).map(Number);
+    const [hours, minutes] = time.split(":").map(Number);
     if (hours < 8 || hours > 22 || (hours === 22 && minutes > 0)) return false;
     return true;
   };
 
+  // Pickup time input handlers
   const handleNormalPickupTimeChange = (e) => {
     const val = e.target.value;
     if (val === "" || isValidPickupTime(val)) {
@@ -60,9 +72,17 @@ const ShoppingCart = () => {
     }
   };
 
-  const normalOrdersTotalAmount = normalOrders.reduce((acc, item) => acc + item.Price * item.Quantity, 0);
-  const preOrdersTotalAmount = preOrders.reduce((acc, item) => acc + item.Price * item.Quantity, 0);
+  // Totals calculation
+  const normalOrdersTotalAmount = normalOrders.reduce(
+    (acc, item) => acc + item.Price * item.Quantity,
+    0
+  );
+  const preOrdersTotalAmount = preOrders.reduce(
+    (acc, item) => acc + item.Price * item.Quantity,
+    0
+  );
 
+  // Item removal handlers
   const normalOrdersRemoveItem = async (id) => {
     try {
       await deleteCartItem(id);
@@ -81,6 +101,7 @@ const ShoppingCart = () => {
     }
   };
 
+  // Fetch active cart or create if missing
   useEffect(() => {
     const fetchData = async () => {
       if (!user?.User_ID) return;
@@ -100,6 +121,7 @@ const ShoppingCart = () => {
     fetchData();
   }, [user]);
 
+  // Fetch cart items and product-related data
   useEffect(() => {
     const fetchAll = async () => {
       if (!cart?.Cart_ID) return;
@@ -123,8 +145,10 @@ const ShoppingCart = () => {
     fetchAll();
   }, [cart]);
 
+  // Enrich cart items with product, image, and size data
   useEffect(() => {
     if (!cartItems.length || !products.length || !productSizes.length || !productImages.length || !categories.length) return;
+
     const enrichItems = (items, categoryName) => {
       return items
         .filter(item => {
@@ -135,7 +159,7 @@ const ShoppingCart = () => {
           const product = products.find(p => p.Product_ID === item.Product_ID);
           const size = productSizes.find(s => s.Size_ID === item.Size_ID);
           const image = productImages.find(i => i.Product_ID === item.Product_ID);
-  
+
           return {
             ...item,
             Product_Name: product?.Product_Name || "Unknown",
@@ -145,10 +169,12 @@ const ShoppingCart = () => {
           };
         });
     };
+
     setNormalOrders(enrichItems(cartItems, "Normal"));
     setPreOrders(enrichItems(cartItems, "Pre Order"));
   }, [cartItems, products, productSizes, productImages, categories]);
 
+  // Finalize normal order and navigate
   const handleFinalizeOrder = () => {
     navigate("/orderConfirmation", {
       state: {
@@ -165,6 +191,7 @@ const ShoppingCart = () => {
     });
   };
 
+  // Finalize pre-order and navigate
   const handleFinalizePreOrder = () => {
     navigate("/orderConfirmation", {
       state: {
@@ -186,16 +213,20 @@ const ShoppingCart = () => {
       },
     });
   };
+
   return (
     <>
       <Navbar />
       <div className="container mt-5">
         <h2 className="text-center">Shopping Cart</h2>
+
+        {/* Tab toggle between Normal and Pre Orders */}
         <div className="d-flex justify-content-center mb-4">
           <button onClick={() => setActiveTab("normal")} className={`btn me-2 ${activeTab === "normal" ? "btn-primary" : "btn-outline-primary"}`}>Normal Orders</button>
           <button onClick={() => setActiveTab("pre")} className={`btn ${activeTab === "pre" ? "btn-primary" : "btn-outline-primary"}`}>Pre Orders</button>
         </div>
 
+        {/* Normal Order Tab */}
         {activeTab === "normal" && normalOrders.length > 0 && (
           <div>
             <h4>Normal Orders</h4>
@@ -221,6 +252,7 @@ const ShoppingCart = () => {
           </div>
         )}
 
+        {/* Pre-Order Tab */}
         {activeTab === "pre" && preOrders.length > 0 && (
           <div>
             <h4>Pre Orders</h4>
@@ -250,8 +282,6 @@ const ShoppingCart = () => {
           </div>
         )}
       </div>
-      
-       
 
       <Footer />
 

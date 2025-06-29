@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
+
+// Import API functions
 import {
   getCategory,
   getProductCategory,
@@ -13,21 +15,24 @@ import { addACart, addToCartItem, getCartById } from "../apis/cart.js";
 import useGlobalVars from "../UserContext.jsx";
 
 const PreOrderBakery = () => {
-  const { user } = useGlobalVars();
+  const { user } = useGlobalVars(); // Get current logged-in user from context
 
+  // States to hold data
   const [product, setProduct] = useState([]);
   const [productSize, setProductSize] = useState([]);
   const [productImage, setProductImage] = useState([]);
   const [productCategory, setProductCategory] = useState([]);
   const [category, setCategory] = useState([]);
   const [cart, setCart] = useState(null);
-  const [quantities, setQuantities] = useState({});
+  const [quantities, setQuantities] = useState({}); // Tracks quantity for each product
 
+  // Fetch categories and product-category mappings
   useEffect(() => {
     getCategory().then(setCategory).catch(console.error);
     getProductCategory().then(setProductCategory).catch(console.error);
   }, []);
 
+  // Fetch products, sizes, and images filtered by "Pre Order" category
   useEffect(() => {
     if (!productCategory.length || !category.length) return;
 
@@ -39,6 +44,7 @@ const PreOrderBakery = () => {
           getProductImage(),
         ]);
 
+        // Filter only "Pre Order" products
         const filteredProducts = products.filter((prod) => {
           const pCat = productCategory.find(
             (p) => p.ProductCategory_ID === prod.ProductCategory_ID
@@ -62,6 +68,7 @@ const PreOrderBakery = () => {
     fetchData();
   }, [productCategory, category]);
 
+  // Fetch or create active cart for user
   useEffect(() => {
     if (!user?.User_ID) return;
 
@@ -89,6 +96,7 @@ const PreOrderBakery = () => {
     fetchCart();
   }, [user]);
 
+  // Initialize quantities for each product to 1
   useEffect(() => {
     if (product.length > 0) {
       const initialQuantities = product.reduce((acc, item) => {
@@ -99,6 +107,7 @@ const PreOrderBakery = () => {
     }
   }, [product]);
 
+  // Increment or decrement quantity
   const handleQuantityChange = (id, change) => {
     setQuantities((prev) => ({
       ...prev,
@@ -106,12 +115,14 @@ const PreOrderBakery = () => {
     }));
   };
 
+  // Add product to cart
   const handleAddToCart = (item) => {
     if (!user || !cart) {
       alert("User not logged in or cart not ready.");
       return;
     }
 
+    // Get product size and category info
     const size = productSize.find((s) => s.Product_ID === item.Product_ID);
     const pCat = productCategory.find(
       (p) => p.ProductCategory_ID === item.ProductCategory_ID
@@ -125,6 +136,7 @@ const PreOrderBakery = () => {
       return;
     }
 
+    // Prepare cart item object
     const cartItem = {
       Cart_ID: cart.Cart_ID,
       Product_ID: item.Product_ID,
@@ -133,6 +145,7 @@ const PreOrderBakery = () => {
       Category_ID: cat.Category_ID,
     };
 
+    // Add to cart via API
     addToCartItem(cartItem)
       .then(() => alert("Item added to cart!"))
       .catch((error) => {

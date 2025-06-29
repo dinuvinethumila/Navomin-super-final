@@ -1,13 +1,13 @@
 import { FiGrid, FiFileText, FiShoppingCart, FiArchive } from "react-icons/fi";
 import { NavLink, useNavigate } from "react-router-dom";
-
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useUser } from "../userContext.jsx";
 
 export default function Sidebar() {
   const navigate = useNavigate();
-  const { user, updateUser, isLoggedIn, logoutUser } = useUser(); // Import global user state and functions
+  const { user, updateUser, isLoggedIn, logoutUser } = useUser(); // Access user context
 
+  // Function to handle navigation using React Router
   const handleNavigation = useCallback(
     (path) => {
       navigate(path);
@@ -15,8 +15,9 @@ export default function Sidebar() {
     [navigate]
   );
 
+  // Call logout function from global user context
   const handleLogout = () => {
-    logoutUser(); // Call the logout function from GlobalVars
+    logoutUser();
   };
 
   return (
@@ -27,7 +28,7 @@ export default function Sidebar() {
       {/* Sidebar header */}
       <h4 className="mb-4">Navomin Super</h4>
 
-      {/* Sidebar links */}
+      {/* Sidebar navigation links */}
       <ul className="nav flex-column">
         <li className="nav-item mb-2">
           <NavLink
@@ -95,7 +96,6 @@ export default function Sidebar() {
             Inventory
           </NavLink>
         </li>
-        {/* report option */}
         <li className="nav-item mb-2">
           <NavLink
             to="/reports"
@@ -111,16 +111,16 @@ export default function Sidebar() {
         </li>
       </ul>
 
-      {/* Spacer to push profile/login to bottom */}
+      {/* Spacer to push user section to bottom */}
       <div className="flex-grow-1"></div>
 
-      {/* Bottom section */}
+      {/* User profile section or login button */}
       <div className="mt-auto">
         <hr className="my-4" />
         <div className="d-flex align-items-center justify-content-end w-100">
           {user ? (
             <div className="d-flex align-items-center">
-              {/* Profile Image */}
+              {/* Profile picture */}
               <div
                 className="position-relative d-flex align-items-center me-2"
                 onClick={() => handleNavigation("/profile")}
@@ -132,6 +132,7 @@ export default function Sidebar() {
                   className="rounded-circle"
                   style={{ width: "40px", height: "40px" }}
                 />
+                {/* Online indicator */}
                 <span
                   className="position-absolute"
                   style={{
@@ -146,7 +147,7 @@ export default function Sidebar() {
                 ></span>
               </div>
 
-              {/* Profile Info */}
+              {/* User name and link to profile */}
               <div
                 className="d-flex flex-column me-2"
                 onClick={() => handleNavigation("/profile")}
@@ -159,6 +160,7 @@ export default function Sidebar() {
               </div>
             </div>
           ) : (
+            // Login button for unauthenticated users
             <button
               className="btn btn-primary py-1 px-3"
               onClick={() => handleNavigation("/login")}

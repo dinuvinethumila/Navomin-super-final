@@ -4,41 +4,52 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import Navbar from "../components/Navbar.jsx";
 import Footer from "../components/Footer.jsx";
 import { useParams } from "react-router-dom";
+
+// Import necessary product and cart API functions
 import {
   getCategoryById,
   getProductById,
   getProductCategoryById,
   getProductImageById,
-  getProducts,
   getProductSizeById,
+  getProducts,
   getProductSize,
   getProductImage,
 } from "../apis/products.js";
-import { addACart, addToCartItem, getCartById,getCartItemById} from "../apis/cart.js";
+
+import {
+  addACart,
+  addToCartItem,
+  getCartById,
+  getCartItemById,
+} from "../apis/cart.js";
+
 import useGlobalVars from "../UserContext.jsx";
 import axios from "axios";
 import { API_URL } from "../constant.js";
 
 const ProductPage = () => {
-  const { id } = useParams();
-  const { user } = useGlobalVars();
+  const { id } = useParams(); // Get product ID from route parameters
+  const { user } = useGlobalVars(); // Get current logged-in user
 
-  const [quantity, setQuantity] = useState(1);
-  const [mainImage, setMainImage] = useState(undefined);
-  const [selectedSize, setSelectedSize] = useState(null);
+  // State declarations
+  const [quantity, setQuantity] = useState(1); // Quantity to order
+  const [mainImage, setMainImage] = useState(undefined); // Selected image to show
+  const [selectedSize, setSelectedSize] = useState(null); // Selected size variant
 
-  const [product, setProduct] = useState(null);
-  const [productSize, setProductSize] = useState([]);
-  const [productImage, setProductImage] = useState([]);
-  const [productCategory, setProductCategory] = useState(null);
-  const [category, setCategory] = useState(null);
+  const [product, setProduct] = useState(null); // Product details
+  const [productSize, setProductSize] = useState([]); // Size variants
+  const [productImage, setProductImage] = useState([]); // Images for product
+  const [productCategory, setProductCategory] = useState(null); // Product category info
+  const [category, setCategory] = useState(null); // Actual category (e.g., Normal, Pre Order)
 
-  const [similarProducts, setSimilarProducts] = useState([]);
+  const [similarProducts, setSimilarProducts] = useState([]); // For future use: similar items
   const [similarProductSize, setSimilarProductSize] = useState([]);
   const [similarProductImage, setSimilarProductImage] = useState([]);
 
-  const [cart, setCart] = useState(null);
+  const [cart, setCart] = useState(null); // User's active cart
 
+  // Fetch or create cart for user
   useEffect(() => {
     if (!user?.User_ID) return;
 
@@ -67,6 +78,7 @@ const ProductPage = () => {
     fetchOrCreateCart();
   }, [user]);
 
+  // Fetch main product details
   useEffect(() => {
     if (!id) return;
 
@@ -75,13 +87,14 @@ const ProductPage = () => {
     getProductSizeById(id)
       .then((sizes) => {
         setProductSize(sizes);
-        if (sizes.length > 0) setSelectedSize(sizes[0]);
+        if (sizes.length > 0) setSelectedSize(sizes[0]); // Auto-select first size
       })
       .catch(console.error);
 
     getProductImageById(id).then(setProductImage).catch(console.error);
   }, [id]);
 
+  // Fetch product-category relationship
   useEffect(() => {
     if (!product?.ProductCategory_ID) return;
 
@@ -90,6 +103,7 @@ const ProductPage = () => {
       .catch(console.error);
   }, [product]);
 
+  // Fetch actual category like "Normal", "Pre Order"
   useEffect(() => {
     if (!productCategory?.Category_ID) return;
 
@@ -98,6 +112,7 @@ const ProductPage = () => {
       .catch(console.error);
   }, [productCategory]);
 
+  // Handle increasing or decreasing quantity with stock check
   const handleQuantityChange = (action) => {
     setQuantity((q) => {
       if (action === "increase") {
@@ -113,83 +128,81 @@ const ProductPage = () => {
     });
   };
 
-
-
-
-const handleAddToCart = async () => {
-  if (!user) {
-    alert("Please log in to add items to the cart.");
-    return;
-  }
-  if (!cart) {
-    alert("Your cart is not ready yet. Please try again.");
-    return;
-  }
-  if (!selectedSize) {
-    alert("Please select a product size.");
-    return;
-  }
-
-  try {
-    const existingItems = await getCartItemById(cart.Cart_ID);
-
-    const existingItem = existingItems.find(
-      (item) =>
-        item.Product_ID === product.Product_ID &&
-        item.Size_ID === selectedSize.Size_ID
-    );
-
-    const currentInCart = existingItem ? existingItem.Quantity : 0;
-    const totalRequested = currentInCart + quantity;
-
-    if (totalRequested > selectedSize.Stock) {
-      alert(
-        `Only ${selectedSize.Stock} in stock. You already have ${currentInCart} in your cart.`
-      );
+  // Add selected product with size and quantity to cart
+  const handleAddToCart = async () => {
+    if (!user) {
+      alert("Please log in to add items to the cart.");
+      return;
+    }
+    if (!cart) {
+      alert("Your cart is not ready yet. Please try again.");
+      return;
+    }
+    if (!selectedSize) {
+      alert("Please select a product size.");
       return;
     }
 
-    if (existingItem) {
-      // Quantity update
-      const updatedItem = {
-        Cart_ID: cart.Cart_ID,
-        Product_ID: product.Product_ID,
-        Size_ID: selectedSize.Size_ID,
-        Quantity: totalRequested,
-        Category_ID: category?.Category_ID,
-      };
+    try {
+      const existingItems = await getCartItemById(cart.Cart_ID);
 
-      await axios.put(
-        `${API_URL}/cartItem/${existingItem.Cart_Item_ID}`,
-        updatedItem
+      const existingItem = existingItems.find(
+        (item) =>
+          item.Product_ID === product.Product_ID &&
+          item.Size_ID === selectedSize.Size_ID
       );
 
-      alert("Cart updated successfully!");
-    } else {
-      const newItem = {
-        Cart_ID: cart.Cart_ID,
-        Product_ID: product.Product_ID,
-        Size_ID: selectedSize.Size_ID,
-        Quantity: quantity,
-        Category_ID: category?.Category_ID,
-      };
+      const currentInCart = existingItem ? existingItem.Quantity : 0;
+      const totalRequested = currentInCart + quantity;
 
-      await addToCartItem(newItem);
-      alert("Item added to cart!");
+      if (totalRequested > selectedSize.Stock) {
+        alert(
+          `Only ${selectedSize.Stock} in stock. You already have ${currentInCart} in your cart.`
+        );
+        return;
+      }
+
+      if (existingItem) {
+        // Update existing item quantity in cart
+        const updatedItem = {
+          Cart_ID: cart.Cart_ID,
+          Product_ID: product.Product_ID,
+          Size_ID: selectedSize.Size_ID,
+          Quantity: totalRequested,
+          Category_ID: category?.Category_ID,
+        };
+
+        await axios.put(
+          `${API_URL}/cartItem/${existingItem.Cart_Item_ID}`,
+          updatedItem
+        );
+
+        alert("Cart updated successfully!");
+      } else {
+        // Add new item to cart
+        const newItem = {
+          Cart_ID: cart.Cart_ID,
+          Product_ID: product.Product_ID,
+          Size_ID: selectedSize.Size_ID,
+          Quantity: quantity,
+          Category_ID: category?.Category_ID,
+        };
+
+        await addToCartItem(newItem);
+        alert("Item added to cart!");
+      }
+    } catch (err) {
+      console.error("Error adding/updating product in cart:", err);
+      alert("Failed to update cart.");
     }
-  } catch (err) {
-    console.error("Error adding/updating product in cart:", err);
-    alert("Failed to update cart.");
-  }
-};
-
-
+  };
 
   return (
     <>
       <Navbar />
       <div className="container mt-4">
         <Row>
+          {/* Left: Image previews */}
           <Col md={5}>
             <Row>
               <Col xs={3} className="d-flex flex-column align-items-center">
@@ -216,6 +229,7 @@ const handleAddToCart = async () => {
             </Row>
           </Col>
 
+          {/* Right: Product Info */}
           <Col md={7}>
             <h3>{product?.Product_Name || "Loading..."}</h3>
             <p>Category: {category?.Category_Name || "Loading..."}</p>
@@ -223,6 +237,7 @@ const handleAddToCart = async () => {
               Rs {selectedSize?.Price || productSize[0]?.Price || "0.00"}
             </h4>
 
+            {/* Dropdown for selecting size */}
             <Dropdown className="mb-3">
               <Dropdown.Toggle variant="secondary">
                 {selectedSize
@@ -235,7 +250,7 @@ const handleAddToCart = async () => {
                     key={idx}
                     onClick={() => {
                       setSelectedSize(size);
-                      setQuantity(1); // reset on size change
+                      setQuantity(1); // reset quantity on size change
                     }}
                   >
                     {size.Size} ({size.Stock} left)
@@ -244,6 +259,7 @@ const handleAddToCart = async () => {
               </Dropdown.Menu>
             </Dropdown>
 
+            {/* Quantity changer */}
             <div className="mb-3">
               <Button
                 variant="outline-secondary"
@@ -263,8 +279,10 @@ const handleAddToCart = async () => {
               </span>
             </div>
 
+            {/* Product description */}
             <p>{product?.Product_Description || "No description available."}</p>
 
+            {/* Add to cart button (only if user & selection is valid) */}
             {user && cart && selectedSize && (
               <Button
                 variant="primary"
@@ -277,6 +295,7 @@ const handleAddToCart = async () => {
           </Col>
         </Row>
 
+        {/* Related products section (not yet populated) */}
         <h5 className="mt-5 mb-4">Related Products</h5>
         <Row>
           {similarProducts.map((item) => {

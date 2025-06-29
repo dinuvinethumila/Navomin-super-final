@@ -1,18 +1,20 @@
 import React, { useCallback } from "react";
-import { FiMenu } from "react-icons/fi";
-import { FaShoppingCart, FaCog } from "react-icons/fa";
+import { FiMenu } from "react-icons/fi"; // Menu icon
+import { FaShoppingCart, FaCog } from "react-icons/fa"; // Icons for cart and settings
 import { useNavigate, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Simulated user object for now
   const user = {
     name: "Amanda",
     profilePic: "images/profile.jpg",
     isLoggedIn: false,
   };
 
+  // Function to navigate to different routes
   const handleNavigation = useCallback((path) => {
     navigate(path);
   }, [navigate]);
@@ -20,7 +22,8 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-light bg-white shadow-sm py-2 px-3">
       <div className="container-fluid">
-        {/* Toggle Button */}
+
+        {/* Toggle Button for smaller screens */}
         <button
           className="navbar-toggler"
           type="button"
@@ -30,7 +33,7 @@ const Navbar = () => {
           <FiMenu className="fs-3" />
         </button>
 
-        {/* Logo */}
+        {/* Logo and Brand Link */}
         <a className="navbar-brand fw-bold ms-3 d-flex align-items-center" href="/">
           <img
             src="images/Logo.png"
@@ -40,7 +43,7 @@ const Navbar = () => {
           />
         </a>
 
-        {/* Navigation Links */}
+        {/* Centered Navigation Links */}
         <div className="collapse navbar-collapse justify-content-center" id="navbarNav">
           <ul className="navbar-nav">
             {[
@@ -66,11 +69,11 @@ const Navbar = () => {
           </ul>
         </div>
 
-        {/* User & Cart Section */}
+        {/* User Section and Cart Icon */}
         <div className="d-flex align-items-center">
           {user.isLoggedIn ? (
             <div className="d-flex align-items-center">
-              {/* Profile Image */}
+              {/* Profile Picture with status indicator */}
               <div
                 className="position-relative d-flex align-items-center"
                 onClick={() => handleNavigation("/profile")}
@@ -96,7 +99,7 @@ const Navbar = () => {
                 ></span>
               </div>
 
-              {/* Profile Info */}
+              {/* Profile Name and Link */}
               <div
                 className="d-flex flex-column me-3"
                 onClick={() => handleNavigation("/profile")}
@@ -113,12 +116,13 @@ const Navbar = () => {
                 <FaCog className="fs-5 text-dark" />
               </button>
 
-              {/* Logout Button */}
+              {/* Log out Button */}
               <button className="btn btn-light text-danger border border-danger py-1">
                 Log out
               </button>
             </div>
           ) : (
+            // If not logged in, show login/signup button
             <button
               className="btn btn-primary me-3 py-1"
               onClick={() => handleNavigation("/login")}
@@ -127,7 +131,7 @@ const Navbar = () => {
             </button>
           )}
 
-          {/* Cart Icon */}
+          {/* Cart Icon with conditional highlighting if on cart page */}
           <div
             className="position-relative"
             style={{ cursor: "pointer" }}
@@ -140,7 +144,6 @@ const Navbar = () => {
                   : "text-dark"
               }`}
             />
-            
           </div>
         </div>
       </div>

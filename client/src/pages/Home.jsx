@@ -12,9 +12,11 @@ import {
 } from "../apis/products.js";
 import { Link } from "react-router-dom";
 
+// Constant defining number of products shown per page
 const ITEMS_PER_PAGE = 12;
 
 const HomePage = () => {
+    // Define state variables for all required data
   const [currentPage, setCurrentPage] = useState(1);
   const [products, setProducts] = useState([]);
   const [productSize, setProductSize] = useState([]);
@@ -54,6 +56,7 @@ const HomePage = () => {
     fetchData();
   }, []);
 
+  // Filter products based on selected category and search term
   const filteredProducts = products.filter((product) => {
     const categoryMatches =
       selectedProductCategory === "all" || product.ProductCategory_ID === Number(selectedProductCategory);
@@ -62,9 +65,10 @@ const HomePage = () => {
 
     return categoryMatches && searchMatches;
   });
-
+ // Sort products based on selected sort option
   const sortedProducts = filteredProducts.slice();
   if (sortOption === "price-asc") {
+     // Sort by minimum price ascending
     sortedProducts.sort((a, b) => {
       const aPrice = productSize
         .filter((size) => size.Product_ID === a.Product_ID)
@@ -83,6 +87,7 @@ const HomePage = () => {
       return aPrice - bPrice;
     });
   } else if (sortOption === "price-desc") {
+      // Sort by price descending
     sortedProducts.sort((a, b) => {
       const aPrice = productSize
         .filter((size) => size.Product_ID === a.Product_ID)
@@ -105,7 +110,7 @@ const HomePage = () => {
   } else if (sortOption === "name-desc") {
     sortedProducts.sort((a, b) => b.Product_Name.localeCompare(a.Product_Name));
   }
-
+  // Pagination logic
   const totalPages = Math.ceil(sortedProducts.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const selectedProducts = sortedProducts.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -116,7 +121,9 @@ const HomePage = () => {
   const prevPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
+  
+  
+  // Handlers for search/filter/sort
   const handleSearchChange = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
@@ -137,9 +144,11 @@ const HomePage = () => {
       <div className="container mt-4">
         <h2 className="fw-bold">Featured Products</h2>
 
-        {/* Filters */}
+        {/*search and Filters */}
         <div className="sticky-top bg-white py-3">
           <div className="row mb-3">
+
+              {/* Search input */}
             <div className="col-md-4">
               <div className="input-group">
                 <span className="input-group-text">
@@ -154,7 +163,7 @@ const HomePage = () => {
                 />
               </div>
             </div>
-
+         {/* Product category filter */}
             <div className="col-md-4">
               <select
                 className="form-select"
@@ -169,7 +178,7 @@ const HomePage = () => {
                 ))}
               </select>
             </div>
-
+       {/* Sort dropdown */}
             <div className="col-md-4">
               <select
                 className="form-select"
@@ -189,6 +198,8 @@ const HomePage = () => {
         {/* Products Grid */}
         <div className="row g-4 mt-3">
           {selectedProducts.map((product) => {
+
+              // Find the lowest price for this product
             const sizesForProduct = productSize.filter(
               (size) => size.Product_ID === product.Product_ID
             );
@@ -198,11 +209,12 @@ const HomePage = () => {
               return price < min ? price : min;
             }, Infinity);
             const priceToShow = minPrice === Infinity ? 0 : minPrice;
-
+ 
+               // Find image for this product
             const image = productImage.find(
               (img) => img.Product_ID === product.Product_ID
             )?.Image_Link;
-
+              // Render each product in a grid column
             return (
               <div key={product.Product_ID} className="col-md-3">
                 <Link

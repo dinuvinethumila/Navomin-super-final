@@ -7,25 +7,28 @@ import { API_URL } from "../constant.js";
 import useGlobalVars from "../UserContext";
 
 const Profile = () => {
+  // State to hold user profile data
   const [userData, setUserData] = useState({
     First_Name: "",
     Last_Name: "",
     Email: "",
     Phone_Number: "",
-    Password: "",
+    Password: "", // password field for update only (not fetched)
   });
 
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const [message, setMessage] = useState(""); // success message
+  const [error, setError] = useState("");     // error message
 
-  const { updateUser } = useGlobalVars();
+  const { updateUser } = useGlobalVars(); // function to update global user context
 
+  // Fetch user profile data when component mounts
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const response = await axios.get(`${API_URL}/user/me`, {
           headers: getAuthHeaders(),
         });
+        // Set user data, but exclude password for security
         setUserData({ ...response.data, Password: "" });
       } catch (err) {
         console.error(err);
@@ -36,6 +39,7 @@ const Profile = () => {
     fetchProfile();
   }, []);
 
+  // Update form values in state when input changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setUserData((prev) => ({ ...prev, [name]: value }));
@@ -43,24 +47,26 @@ const Profile = () => {
     setMessage("");
   };
 
+  // Handle form submission to update profile
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e.preventDefault(); // prevent page reload
     setError("");
     setMessage("");
 
     try {
       const updateData = { ...userData };
-      if (!updateData.Password) delete updateData.Password;
+      if (!updateData.Password) delete updateData.Password; // if password left blank, don't send
 
       await axios.put(`${API_URL}/user/me`, updateData, {
         headers: getAuthHeaders(),
       });
 
+      // Save updated data in localStorage and global context
       localStorage.setItem("user", JSON.stringify(updateData));
       updateUser({ ...updateData, Password: "" });
 
       setMessage("Profile updated successfully!");
-      setUserData((prev) => ({ ...prev, Password: "" }));
+      setUserData((prev) => ({ ...prev, Password: "" })); // clear password input
     } catch (err) {
       console.error(err);
       setError("Failed to update profile.");
@@ -72,9 +78,12 @@ const Profile = () => {
       <Navbar />
       <div className="container mt-5" style={{ maxWidth: 600 }}>
         <h2>Your Profile</h2>
+
+        {/* Success or error messages */}
         {message && <div className="alert alert-success">{message}</div>}
         {error && <div className="alert alert-danger">{error}</div>}
 
+        {/* Profile update form */}
         <form onSubmit={handleSubmit}>
           <div className="mb-3">
             <label>First Name</label>
@@ -135,6 +144,7 @@ const Profile = () => {
             />
           </div>
 
+          {/* Submit button */}
           <button type="submit" className="btn btn-primary">
             Update Profile
           </button>

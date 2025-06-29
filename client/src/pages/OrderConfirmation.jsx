@@ -1,3 +1,4 @@
+// [OrderConfirmation.jsx]
 import React, { useState } from "react";
 import "bootstrap/dist/css/bootstrap.min.css";
 import {
@@ -13,6 +14,7 @@ import Footer from "../components/Footer";
 import Navbar from "../components/Navbar";
 import CardPayment from "./CardPayment";
 
+// Import API methods to handle orders and cart
 import {
   addAnOrder,
   addOrderItem,
@@ -24,127 +26,137 @@ import { disableCart, getCartItemById } from "../apis/cart";
 import useGlobalVars from "../UserContext";
 
 const OrderConfirmation = () => {
+
+    // Get order data passed from ShoppingCart page
   const location = useLocation();
   const { finalizedOrder } = location.state || {};
   const { user } = useGlobalVars();
   const navigate = useNavigate();
 
+
+// Extract normal/pre-order data and cart ID
   const normalOrders = finalizedOrder?.normalOrders || {};
   const preOrders = finalizedOrder?.preOrders || {};
   const cartId = finalizedOrder?.cartId || null;
+  // UI state management
+  const [paymentTrigger, setPaymentTrigger] = useState(false);// Show CardPayment
+  const [paymentSuccess, setPaymentSuccess] = useState(false);// Show payment success
+  const [orderPlaced, setOrderPlaced] = useState(false); // Track if order is completed
+  const [latestOrderId, setLatestOrderId] = useState(null); // Save placed order/pre-order ID
+  const [messageOnly, setMessageOnly] = useState(false);// Show pre-order confirmation
+  const [isSubmitting, setIsSubmitting] = useState(false);     // Prevent multiple clicks
 
-  const [paymentTrigger, setPaymentTrigger] = useState(false);
-  const [paymentSuccess, setPaymentSuccess] = useState(false);
-  const [orderPlaced, setOrderPlaced] = useState(false);
-  const [latestOrderId, setLatestOrderId] = useState(null);
-  const [messageOnly, setMessageOnly] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const createOrder = async () => {
+    // Detect which type of order was passed
+  const isNormalOrder = normalOrders.orders?.length > 0;
+  const isPreOrder = preOrders.orders?.length > 0;
+
+  const finalizeNormalOrder = async () => {
     try {
       setIsSubmitting(true);
 
       const cartItems = await getCartItemById(cartId);
       if (!cartItems || cartItems.length === 0) {
         alert("Your cart is empty.");
-        setIsSubmitting(false);
-        return { success: false };
+        return;
       }
+      // Calculate total
 
       const totalAmount = cartItems.reduce((acc, item) => {
-        const price = Number(item?.Price) || 0;
-        const qty = Number(item?.Quantity) || 0;
-        return acc + price * qty;
+        return acc + (Number(item?.Price) || 0) * (Number(item?.Quantity) || 0);
       }, 0);
+ // Create order entry in DB
+      const orderResponse = await addAnOrder({
+        userId: user.User_ID,
+        Pickup_Time: normalOrders.pickupTime || "not selected",
+        Total_Amount: totalAmount,
+        Status: "Confirmed",
+      });
 
-      if (normalOrders.orders?.length > 0) {
-        const orderResponse = await addAnOrder({
-          userId: user.User_ID,
-          Pickup_Time: normalOrders.pickupTime || "15:30",
-          Total_Amount: totalAmount,
-          Status: "Confirmed",
+      const orderId = orderResponse.Order_ID;
+      setLatestOrderId(orderId);
+
+      // Add each item to the order
+      for (const item of cartItems) {
+        await addOrderItem({
+          Order_ID: orderId,
+          Product_ID: item.Product_ID,
+          Size_ID: item.Size_ID,
+          Quantity: item.Quantity,
+          Total_Amount: item.Quantity * item.Price,
         });
-
-        const orderId = orderResponse.Order_ID;
-        setLatestOrderId(orderId);
-
-        for (const item of cartItems) {
-          await addOrderItem({
-            Order_ID: orderId,
-            Product_ID: item.Product_ID,
-            Size_ID: item.Size_ID,
-            Quantity: item.Quantity,
-            Total_Amount: item.Quantity * item.Price,
-          });
-        }
-
-        return { success: true };
       }
 
-      if (preOrders.orders?.length > 0) {
-        const preOrderPayload = {
-          User_ID: user?.User_ID,
-          Half_Paid: "Unpaid",
-          Estimated_Total: totalAmount,
-          Pickup_Date: preOrders?.pickupDate || new Date().toISOString().slice(0, 10),
-          Pickup_Time: preOrders?.pickupTime || "15:30",
-        };
-
-        const preOrderResponse = await addAPreOrder(preOrderPayload);
-        const preOrderId = preOrderResponse.Pre_Order_ID;
-        setLatestOrderId(preOrderId);
-
-        for (const item of cartItems) {
-          await addPreOrderItem({
-            Pre_Order_ID: preOrderId,
-            Product_ID: item.Product_ID,
-            Size_ID: item.Size_ID,
-            Quantity: item.Quantity,
-          });
-        }
-
-        setMessageOnly(true);
-        setOrderPlaced(true);
-        await disableCart(cartId);
-
-        setTimeout(() => navigate("/myOrders", { replace: true }), 2000);
-
-        return { success: true };
-      }
-
-      return { success: false };
+      setPaymentTrigger(true); // Show payment form
     } catch (error) {
-      console.error("Order placement failed:", error);
+      console.error("Normal order placement failed:", error);
       alert("Order could not be placed. Try again.");
-      return { success: false };
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleValidationBeforeProceed = async () => {
-    const hasNormal = normalOrders.orders?.length > 0;
-    const hasPre = preOrders.orders?.length > 0;
+  const finalizePreOrder = async () => {
+    try {
+      setIsSubmitting(true);
 
-    if (hasNormal && hasPre) {
-      alert("❌ Cannot place Normal and Pre Orders at the same time.");
-      return;
-    }
+      const cartItems = await getCartItemById(cartId);
+      if (!cartItems || cartItems.length === 0) {
+        alert("Your cart is empty.");
+        return;
+      }
 
-    const result = await createOrder();
-    if (result.success && hasNormal) {
-      setPaymentTrigger(true);
+      const totalAmount = cartItems.reduce((acc, item) => {
+        return acc + (Number(item?.Price) || 0) * (Number(item?.Quantity) || 0);
+      }, 0);
+
+      
+      // Create pre-order entry
+      const preOrderResponse = await addAPreOrder({
+        User_ID: user?.User_ID,
+        Half_Paid: "Unpaid",
+        Estimated_Total: totalAmount,
+        Pickup_Date: preOrders?.pickupDate || new Date().toISOString().slice(0, 10),
+        Pickup_Time: preOrders?.pickupTime || "not selected",
+      });
+
+      const preOrderId = preOrderResponse.Pre_Order_ID;
+      setLatestOrderId(preOrderId);
+  // Add items to pre-order
+      for (const item of cartItems) {
+        await addPreOrderItem({
+          Pre_Order_ID: preOrderId,
+          Product_ID: item.Product_ID,
+          Size_ID: item.Size_ID,
+          Quantity: item.Quantity,
+        });
+      }
+
+      await disableCart(cartId);// Mark cart as used
+      setMessageOnly(true);  // Show confirmation
+      setOrderPlaced(true);
+
+
+        // Redirect after 2 seconds
+      setTimeout(() => navigate("/myOrders", { replace: true }), 2000);
+    } catch (error) {
+      console.error("Pre-order placement failed:", error);
+      alert("Pre-order could not be placed. Try again.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <>
       <Navbar />
+  {/* If payment isn't triggered yet, show summary */}
       {!paymentTrigger && (
         <Container className="my-5">
           <h4 className="mb-3">Order Summary</h4>
 
-          {normalOrders.orders?.length > 0 && (
+          {/* Normal Orders */}
+          {isNormalOrder && (
             <div className="border rounded p-4 shadow-sm mb-4">
               <h6>Normal Orders</h6>
               <Table bordered>
@@ -172,10 +184,23 @@ const OrderConfirmation = () => {
                 </tbody>
               </Table>
               <p className="text-muted">Pickup Time: {normalOrders.pickupTime}</p>
+
+              {/* Normal order button */}
+              {!orderPlaced && (
+                <Button
+                  variant="primary"
+                  className="submit-btn"
+                  onClick={finalizeNormalOrder}
+                  disabled={isSubmitting}
+                >
+                  Finalize Normal Order
+                </Button>
+              )}
             </div>
           )}
 
-          {preOrders.orders?.length > 0 && (
+          {/* Pre Orders */}
+          {isPreOrder && (
             <div className="border rounded p-4 shadow-sm mb-4">
               <h6>Pre Orders</h6>
               <Table bordered>
@@ -204,38 +229,35 @@ const OrderConfirmation = () => {
               </Table>
               <p className="text-muted">Pickup Date: {preOrders.pickupDate}</p>
               <p className="text-muted">Pickup Time: {preOrders.pickupTime}</p>
+     {/* Pre-order button */}
+              {!orderPlaced && (
+                <Button
+                  variant="success"
+                  className="submit-btn"
+                  onClick={finalizePreOrder}
+                  disabled={isSubmitting}
+                >
+                  Finalize Pre-Order
+                </Button>
+              )}
             </div>
           )}
 
-          <Row className="mb-3">
-            <Col md={6}>
-              <p>Normal Total: <strong>Rs. {normalOrders.totalAmount}</strong></p>
-              <p>Payment Method: {normalOrders.paymentMethod?.toUpperCase()}</p>
-            </Col>
-            <Col md={6}>
-              <p>Pre-Order Estimate: <strong>Rs. {preOrders.totalAmount}</strong></p>
-              <p>(Pre-orders processed without payment)</p>
-            </Col>
-          </Row>
+           {/* Status messages */}
 
           {messageOnly && (
             <Alert variant="success" className="mt-3 text-center">
-              ✅ Pre-order finalized!
+              Pre-order finalized!
             </Alert>
           )}
 
           {paymentSuccess && (
             <Alert variant="success" className="mt-3 text-center">
-              ✅ Your payment was successful!
+             Your payment was successful!
             </Alert>
           )}
 
-          {!orderPlaced && (
-            <Button variant="primary" className="submit-btn" onClick={handleValidationBeforeProceed} disabled={isSubmitting}>
-              Finalize {normalOrders.orders?.length > 0 ? "Normal" : "Pre"} Order
-            </Button>
-          )}
-
+          {/* Styling for buttons */}
           <style>{`
             .submit-btn {
               display: block;
@@ -256,10 +278,19 @@ const OrderConfirmation = () => {
         </Container>
       )}
 
+  
+      {/* Show payment UI for normal orders */}
       {paymentTrigger && (
         <CardPayment
           setPaymentTrigger={setPaymentTrigger}
-          setPaymentSuccess={setPaymentSuccess}
+          setPaymentSuccess={async (success) => {
+            if (success) {
+              setPaymentSuccess(true);
+              setOrderPlaced(true);
+              await disableCart(cartId);
+              setTimeout(() => navigate("/myOrders", { replace: true }), 2000);
+            }
+          }}
           orderId={latestOrderId}
           isPreOrder={false}
         />

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
+
+// Importing API functions for orders and products
 import {
   getOrderItemByOrderId,
   getOrderById,
@@ -12,22 +14,23 @@ import {
   getProductById,
   getProductSizeBySizeId,
 } from "../apis/products";
+
 import useGlobalVars from "../UserContext";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const OrderDetails = () => {
-  const { state } = useLocation();
-  const { type, id } = state || {};
-  const { user } = useGlobalVars();
+  const { state } = useLocation(); // Accessing route state (order type and ID)
+  const { type, id } = state || {}; // Destructuring type and id from route state
+  const { user } = useGlobalVars(); // Accessing global user context
 
-  const [items, setItems] = useState([]);
-  const [orderInfo, setOrderInfo] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [paid, setPaid] = useState(false);
-  const [isPaying, setIsPaying] = useState(false);
-  const [successMessage, setSuccessMessage] = useState("");
+  const [items, setItems] = useState([]); // Holds list of order/pre-order items
+  const [orderInfo, setOrderInfo] = useState({}); // Holds general order/pre-order details
+  const [loading, setLoading] = useState(true); // Controls loading state
+  const [paid, setPaid] = useState(false); // Tracks payment status for pre-orders
+  const [isPaying, setIsPaying] = useState(false); // Indicates payment is being processed
+  const [successMessage, setSuccessMessage] = useState(""); // Message shown after successful payment
 
   useEffect(() => {
     const fetchDetails = async () => {
@@ -36,17 +39,20 @@ const OrderDetails = () => {
         let metaData = {};
 
         if (type === "normal") {
+          // Fetching normal order metadata and items
           const order = await getOrderById(id);
           metaData = order;
           itemData = await getOrderItemByOrderId(id);
         } else {
+          // Fetching pre-order metadata and items
           const preOrders = await getPreOrderByUserId(user.User_ID);
           const selectedPreOrder = preOrders.find((p) => p.Pre_Order_ID === id);
           metaData = selectedPreOrder || {};
-          setPaid(selectedPreOrder?.Half_Paid === "Paid");
+          setPaid(selectedPreOrder?.Half_Paid === "Paid"); // Set paid status
           itemData = await getPreOrderItemByPreOrderId(id);
         }
 
+        // Enrich item data with product name, size and price
         const enriched = await Promise.all(
           itemData.map(async (item) => {
             const product = await getProductById(item.Product_ID);
@@ -61,18 +67,19 @@ const OrderDetails = () => {
           })
         );
 
-        setItems(enriched);
-        setOrderInfo(metaData);
+        setItems(enriched); // Set enriched items to state
+        setOrderInfo(metaData); // Set order metadata to state
       } catch (err) {
         console.error("Failed to load order details:", err);
       } finally {
-        setLoading(false);
+        setLoading(false); // Disable loading state
       }
     };
 
-    fetchDetails();
+    fetchDetails(); // Call the data fetch function
   }, [type, id, user]);
 
+  // Simulated payment function for pre-orders
   const handleMockPayment = async () => {
     if (orderInfo?.Status !== "Confirmed") {
       return alert("Your order is not yet confirmed by admin.");
@@ -80,9 +87,9 @@ const OrderDetails = () => {
 
     try {
       setIsPaying(true);
-      await updatePreOrderPaymentStatus(id, "Paid");
+      await updatePreOrderPaymentStatus(id, "Paid"); // Mark as paid in database
       setPaid(true);
-      setSuccessMessage("✅ Payment completed for your pre-order!");
+      setSuccessMessage("Payment completed for your pre-order!");
     } catch (err) {
       console.error("Payment update failed:", err);
       alert("Payment failed. Try again later.");
@@ -91,6 +98,7 @@ const OrderDetails = () => {
     }
   };
 
+  // Calculate total price of all items
   const total = items.reduce((sum, item) => sum + parseFloat(item.Total), 0).toFixed(2);
 
   if (loading) return <div className="text-center mt-5">Loading...</div>;
@@ -99,8 +107,11 @@ const OrderDetails = () => {
     <>
       <Navbar />
       <div className="container my-5">
-        <h3 className="mb-4">Order Details - {type === "normal" ? "Normal Order" : "Pre-Order"}</h3>
+        <h3 className="mb-4">
+          Order Details - {type === "normal" ? "Normal Order" : "Pre-Order"}
+        </h3>
 
+        {/* If no items are found */}
         {items.length === 0 ? (
           <p>No items found for this order.</p>
         ) : (
@@ -134,6 +145,7 @@ const OrderDetails = () => {
           </table>
         )}
 
+        {/* Order metadata and payment for pre-orders */}
         <div className="mt-4">
           {type === "normal" ? (
             <>
@@ -147,6 +159,8 @@ const OrderDetails = () => {
               <p><strong>Pickup Time:</strong> {orderInfo?.Pickup_Time || "-"}</p>
               <p><strong>Status:</strong> {orderInfo?.Status || "-"}</p>
               <p><strong>Paid:</strong> {paid ? "Yes" : "No"}</p>
+
+              {/* Payment button for pre-orders */}
               {!paid && (
                 <button
                   className="btn btn-success"
@@ -156,6 +170,8 @@ const OrderDetails = () => {
                   {isPaying ? "Processing..." : "Pay Now (Mock)"}
                 </button>
               )}
+
+              {/* Show message after payment */}
               {successMessage && (
                 <div className="alert alert-success mt-3" role="alert">
                   {successMessage}

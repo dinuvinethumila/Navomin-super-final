@@ -7,20 +7,23 @@ import Footer from "../components/Footer";
 import "bootstrap/dist/css/bootstrap.min.css";
 
 const MyOrder = () => {
-  const { user } = useGlobalVars();
+  const { user } = useGlobalVars();  // Get logged-in user data
   const navigate = useNavigate();
   const [orders, setOrders] = useState([]);
   const [preOrders, setPreOrders] = useState([]);
 
+// Fetch orders when user is available
   useEffect(() => {
-    if (!user?.User_ID) return;
+    if (!user?.User_ID) return;  // Skip if user ID is not ready
 
     const fetchOrders = async () => {
       try {
+        // Fetch normal and pre-orders in parallel
         const [normal, pre] = await Promise.all([
           getOrderByUserId(user.User_ID),
           getPreOrderByUserId(user.User_ID),
         ]);
+        // Store results in state
         setOrders(normal);
         setPreOrders(pre);
       } catch (error) {
@@ -31,6 +34,7 @@ const MyOrder = () => {
     fetchOrders();
   }, [user]);
 
+  // Navigate to the order details page
   const handleViewDetails = (type, id) => {
     navigate("/orderDetails", { state: { type, id } });
   };
@@ -40,7 +44,7 @@ const MyOrder = () => {
       <Navbar />
       <div className="container mt-5">
         <h2 className="mb-4">My Orders</h2>
-
+ {/* Section for normal orders */}
         <h4 className="mt-4">Normal Orders</h4>
         {orders.length === 0 ? (
           <p>No normal orders found.</p>
@@ -75,6 +79,8 @@ const MyOrder = () => {
             </tbody>
           </table>
         )}
+        
+         {/* Section for pre-orders */}
 
         <h4 className="mt-5">Pre Orders</h4>
         {preOrders.length === 0 ? (
