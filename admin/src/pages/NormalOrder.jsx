@@ -1,13 +1,18 @@
 import React, { useEffect, useState } from "react";
-import { getOrder, updateOrderStatus } from "../apis/order";
-import { getUser } from "../apis/user";
+import { getOrder, updateOrderStatus } from "../apis/order"; // Order-related API calls
+import { getUser } from "../apis/user"; // User data API call
 
 const NormalOrder = () => {
+  // State to manage search input
   const [searchTerm, setSearchTerm] = useState("");
+  // Full list of orders from API
   const [ordersData, setOrdersData] = useState([]);
+  // Orders that match the current search term
   const [filteredOrders, setFilteredOrders] = useState([]);
+  // Full list of users (to map user IDs to names)
   const [users, setUsers] = useState([]);
 
+  // Fetch all normal orders on component mount
   useEffect(() => {
     const fetchOrders = async () => {
       try {
@@ -20,6 +25,7 @@ const NormalOrder = () => {
     fetchOrders();
   }, []);
 
+  // Fetch user data on mount (needed to display user names)
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -32,8 +38,10 @@ const NormalOrder = () => {
     fetchUserData();
   }, []);
 
+  // Filter orders by customer name or order ID when search term, orders, or users change
   useEffect(() => {
     const lowerSearch = searchTerm.toLowerCase();
+
     const filtered = ordersData.filter(({ Order_ID, User_ID }) => {
       const user = users.find((u) => u.User_ID === User_ID);
       const fullName = user
@@ -43,19 +51,22 @@ const NormalOrder = () => {
         String(Order_ID).includes(searchTerm) || fullName.includes(lowerSearch)
       );
     });
+
     setFilteredOrders(filtered);
   }, [searchTerm, ordersData, users]);
 
+  // Handle status dropdown change and update order status via API
   const handleStatusChange = async (orderId, newStatus) => {
     try {
       await updateOrderStatus(orderId, newStatus);
-      const updatedOrders = await getOrder();
+      const updatedOrders = await getOrder(); // Refresh orders after update
       setOrdersData(updatedOrders);
     } catch (error) {
       console.error("Failed to update order status:", error);
     }
   };
 
+  // Utility to format pickup time (24h to 12h AM/PM)
   const formatTime = (timeStr) => {
     if (!timeStr) return "-";
     const [hour, min] = timeStr.split(":");
@@ -68,6 +79,7 @@ const NormalOrder = () => {
       <div className="flex-grow-1 p-4">
         <h2 className="mb-3">Normal Orders</h2>
 
+        {/* Search Input */}
         <input
           type="text"
           className="form-control mb-4"
@@ -76,6 +88,7 @@ const NormalOrder = () => {
           onChange={(e) => setSearchTerm(e.target.value)}
         />
 
+        {/* Orders Table */}
         <div className="table-responsive shadow-sm bg-white rounded">
           <table className="table table-bordered align-middle mb-0">
             <thead className="table-light">
@@ -122,6 +135,7 @@ const NormalOrder = () => {
                   </tr>
                 );
               })}
+              {/* No data case */}
               {filteredOrders.length === 0 && (
                 <tr>
                   <td colSpan="6" className="text-center text-muted py-3">

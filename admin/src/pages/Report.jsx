@@ -4,31 +4,34 @@ import {
   getProductCategory,
   getProducts,
   getProductSize,
-} from "../apis/products";
-import { generateStockPDF, generateSalesPDF } from "../generatePdf";
-import { getOrder, getPreOrder } from "../apis/order";
-import { getUser } from "../apis/user";
-import { FaDownload } from "react-icons/fa";
+} from "../apis/products"; // Import API functions for fetching product-related data
+import { generateStockPDF, generateSalesPDF } from "../generatePdf"; // Import PDF generation functions
+import { getOrder, getPreOrder } from "../apis/order"; // Import functions to get orders
+import { getUser } from "../apis/user"; // Import function to fetch user details
+import { FaDownload } from "react-icons/fa"; // Icon for download button
 
+// Available report types
 const reportTypes = [
   { id: 1, name: "Stocks" },
   { id: 2, name: "Sales" },
 ];
 
 const Report = () => {
+  // State variables to hold data
   const [category, setCategory] = useState([]);
   const [productCategory, setProductCategory] = useState([]);
   const [products, setProducts] = useState([]);
   const [productSize, setProductSize] = useState([]);
 
-  const [report, setReport] = useState([]);
-  const [reportReady, setReportReady] = useState(false);
-  const [selectedReportType, setSelectedReportType] = useState("");
+  const [report, setReport] = useState([]); // Holds the generated report content
+  const [reportReady, setReportReady] = useState(false); // Boolean to control download availability
+  const [selectedReportType, setSelectedReportType] = useState(""); // Tracks selected report type
 
-  const [ordersData, setOrdersData] = useState([]);
-  const [preOrders, setPreOrders] = useState([]);
-  const [users, setUsers] = useState([]);
+  const [ordersData, setOrdersData] = useState([]); // Normal orders
+  const [preOrders, setPreOrders] = useState([]); // Pre-orders
+  const [users, setUsers] = useState([]); // Customer info
 
+  // Load all necessary data once on mount
   useEffect(() => {
     getCategory().then(setCategory).catch(console.error);
     getProductCategory().then(setProductCategory).catch(console.error);
@@ -39,18 +42,22 @@ const Report = () => {
     getUser().then(setUsers).catch(console.error);
   }, []);
 
+  // Generate report based on selected type
   const generateReport = () => {
     const type = parseInt(selectedReportType);
 
     if (type === 1) {
-      // Stock Report
+      // Generate Stock Report
       const result = category.map((cat) => {
+        // For each main category, find associated product categories
         const matchedProdCats = productCategory
           .filter((pCat) => pCat.Category_ID === cat.Category_ID)
           .map((prodCat) => {
+            // For each product category, find matching products
             const matchingProducts = products
               .filter((p) => p.ProductCategory_ID === prodCat.ProductCategory_ID)
               .map((p) => {
+                // For each product, get size and stock
                 const sizes = productSize
                   .filter((s) => s.Product_ID === p.Product_ID)
                   .map((s) => ({
@@ -60,7 +67,7 @@ const Report = () => {
                   }));
                 return sizes;
               })
-              .flat();
+              .flat(); // Flatten nested arrays
 
             return {
               productCategory: prodCat.ProductCategory_Name,
@@ -74,9 +81,11 @@ const Report = () => {
         };
       });
 
-      setReport(result);
+      setReport(result); // Set the final stock report structure
     } else if (type === 2) {
-      // Sales Report
+      // Generate Sales Report
+
+      // Map normal orders with related customer info
       const normal = ordersData.map((o) => {
         const user = users.find((u) => u.User_ID === o.User_ID);
         return {
@@ -92,6 +101,7 @@ const Report = () => {
         };
       });
 
+      // Map pre-orders with customer info
       const pre = preOrders.map((o) => {
         const user = users.find((u) => u.User_ID === o.User_ID);
         return {
@@ -108,6 +118,7 @@ const Report = () => {
         };
       });
 
+      // Set the final sales report structure
       setReport([
         { type: "Normal Order", orders: normal },
         { type: "Pre Order", orders: pre },
@@ -115,19 +126,21 @@ const Report = () => {
     }
   };
 
+  // Trigger PDF download based on selected type
   const handleDownload = () => {
     const type = parseInt(selectedReportType);
     if (reportReady) {
       if (type === 1) {
-        generateStockPDF(report);
+        generateStockPDF(report); // Call stock report generator
       } else if (type === 2) {
-        generateSalesPDF(report);
+        generateSalesPDF(report); // Call sales report generator
       }
     } else {
       alert("No report to download.");
     }
   };
 
+  // Enable download only when report is ready
   useEffect(() => {
     setReportReady(report.length > 0);
   }, [report]);
@@ -136,6 +149,7 @@ const Report = () => {
     <div className="container-fluid p-4">
       <h2 className="mb-4">Generate Report</h2>
 
+      {/* Report Type Selector */}
       <div className="mb-3" style={{ maxWidth: "300px" }}>
         <label>Select Report Type</label>
         <select
@@ -154,10 +168,12 @@ const Report = () => {
         </select>
       </div>
 
+      {/* Button to generate the report */}
       <button className="btn btn-primary" onClick={generateReport}>
         Generate Report
       </button>
 
+      {/* Show download icon if report is generated */}
       {reportReady && (
         <div className="mt-5">
           <h4>Download Report</h4>
