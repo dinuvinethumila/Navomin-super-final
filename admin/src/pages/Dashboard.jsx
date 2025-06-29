@@ -1,22 +1,32 @@
 import React, { useEffect, useState } from "react";
+
+// API calls for sales and orders
 import {
   getTotalOrderSales,
   getTotalPreOrderSales,
   getTotalSales,
-
 } from "../apis/owner";
+
+// API calls for products
 import { getProducts, getProductSize } from "../apis/products";
-// ✅ Correct
+
+// API calls for pre-orders
 import { getPreOrder, updatePreOrderStatus } from "../apis/order";
 
 const Dashboard = () => {
+  // State to store sales figures
   const [totalSales, setTotalSales] = useState(0);
   const [orderSales, setOrderSales] = useState(0);
   const [preOrderSales, setPreOrderSales] = useState(0);
+
+  // State to store product and size data
   const [products, setProducts] = useState([]);
   const [sizes, setSizes] = useState([]);
+
+  // State to store pre-orders that require confirmation
   const [pendingPreOrders, setPendingPreOrders] = useState([]);
 
+  // Fetch total sales data on initial load
   useEffect(() => {
     const fetchSalesData = async () => {
       try {
@@ -33,6 +43,7 @@ const Dashboard = () => {
     fetchSalesData();
   }, []);
 
+  // Fetch product and size data on load
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -47,6 +58,7 @@ const Dashboard = () => {
     fetchProducts();
   }, []);
 
+  // Fetch all pending pre-orders on load
   useEffect(() => {
     const fetchPendingPreOrders = async () => {
       try {
@@ -65,9 +77,11 @@ const Dashboard = () => {
     fetchPendingPreOrders();
   }, []);
 
+  // Handle status update (Confirm/Reject) for a pre-order
   const handleStatusUpdate = async (id, newStatus) => {
     try {
       await updatePreOrderStatus(id, newStatus);
+      // Remove the updated order from the pending list
       setPendingPreOrders((prev) =>
         prev.filter((po) => po.Pre_Order_ID !== id)
       );
@@ -82,7 +96,7 @@ const Dashboard = () => {
       <div className="flex-grow-1 p-4">
         <h1 className="mb-4">Admin Dashboard</h1>
 
-        {/* Sales Summary */}
+        {/* Sales Summary Cards */}
         <div className="row g-4 mb-4">
           <div className="col-md-4">
             <div className="bg-white shadow-sm rounded p-4 h-100">
@@ -104,7 +118,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Low Stock */}
+        {/* Low Stock Section */}
         <div className="bg-white shadow-sm rounded p-4 mb-5">
           <h4 className="mb-3">Low Stock Alerts (≤ 10)</h4>
           <div className="row row-cols-1 row-cols-md-3 g-3">
@@ -129,7 +143,7 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* Pending Pre-Orders */}
+        {/* Pre-Orders Awaiting Confirmation */}
         <div className="bg-white shadow-sm rounded p-4">
           <h4 className="mb-3">Pending Pre-Order Confirmations</h4>
           {pendingPreOrders.length === 0 ? (

@@ -14,19 +14,22 @@ import {
 } from "../apis/products";
 
 const Billing = () => {
-  const { billNumberFromOrder } = useParams();
-  const billFromOrderList = billNumberFromOrder !== undefined;
+  const { billNumberFromOrder } = useParams(); // Get bill number from URL params if present
+  const billFromOrderList = billNumberFromOrder !== undefined; // Check if it was passed from route
 
+  // State declarations
   const [billNumber, setBillNumber] = useState(billNumberFromOrder || "");
-  const [orderType, setOrderType] = useState("Normal Order");
-  const [items, setItems] = useState([]);
-  const [orderInfo, setOrderInfo] = useState({});
-  const [received, setReceived] = useState(0);
+  const [orderType, setOrderType] = useState("Normal Order"); // Default to Normal Order
+  const [items, setItems] = useState([]); // Order items
+  const [orderInfo, setOrderInfo] = useState({}); // Metadata about the order
+  const [received, setReceived] = useState(0); // Received amount from customer
 
+  // Totals and balance
   const totalQty = items.reduce((sum, item) => sum + (item.Quantity || 0), 0);
   const totalPrice = items.reduce((sum, item) => sum + parseFloat(item.Total || 0), 0);
   const balance = received - totalPrice;
 
+  // Fetch details based on bill number and order type
   const fetchBillDetails = async () => {
     if (!billNumber) return;
 
@@ -39,13 +42,14 @@ const Billing = () => {
         metaData = order;
         itemData = await getOrderItemByOrderId(billNumber);
       } else {
-        const allPreOrders = await getPreOrder(); // admin view
+        const allPreOrders = await getPreOrder(); // Admin-only view
         const selected = allPreOrders.find(p => p.Pre_Order_ID === parseInt(billNumber));
         if (!selected) return alert("Invalid Pre-Order ID");
         metaData = selected;
         itemData = await getPreOrderItemByPreOrderId(billNumber);
       }
 
+      // Enrich order items with product and size data
       const enriched = await Promise.all(
         itemData.map(async (item) => {
           const product = await getProductById(item.Product_ID);
@@ -67,6 +71,7 @@ const Billing = () => {
     }
   };
 
+  // Convert time string (HH:mm) to readable format
   const formatTime = (timeStr) => {
     if (!timeStr) return "-";
     const [hr, min] = timeStr.split(":");
@@ -78,7 +83,7 @@ const Billing = () => {
     <div className="container my-5">
       <h2 className="mb-4">Billing Page</h2>
 
-      {/* Input Form */}
+      {/* Form to select order type and enter bill number */}
       <div className="mb-4 d-flex gap-4 align-items-end">
         <div>
           <label>Order Type</label>
@@ -104,7 +109,7 @@ const Billing = () => {
         </button>
       </div>
 
-      {/* Table */}
+      {/* Billing Table */}
       <div className="table-responsive">
         <table className="table table-bordered">
           <thead className="table-light">
@@ -136,7 +141,7 @@ const Billing = () => {
         </table>
       </div>
 
-      {/* Summary */}
+      {/* Summary and Payment Details */}
       <div className="row mt-4">
         <div className="col-md-6">
           <label>Received</label>
@@ -148,8 +153,6 @@ const Billing = () => {
           />
           <p><strong>Balance:</strong> Rs. {balance.toFixed(2)}</p>
         </div>
-        
-         
 
         <div className="col-md-6">
           <p><strong>Pickup Time:</strong> {formatTime(orderInfo?.Pickup_Time)}</p>
@@ -160,17 +163,13 @@ const Billing = () => {
           <p><strong>Payment:</strong> {orderInfo?.Payment_Status || orderInfo?.Half_Paid || "-"}</p>
         </div>
 
-         <button
-    className="btn btn-primary"
-    >
-    Print Bill
-  </button>
+        {/* Print Button */}
+        <button className="btn btn-primary">
+          Print Bill
+        </button>
       </div>
     </div>
-    
   );
 };
-
-
 
 export default Billing;

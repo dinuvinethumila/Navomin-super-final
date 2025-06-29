@@ -13,17 +13,23 @@ import {
   updateStock,
 } from "../apis/products";
 
+// Tab options for the inventory page
 const topTabs = ["Stock Update", "Add Item", "Remove Item"];
 
 const Inventory = () => {
+  // UI and product data states
   const [activeTopTab, setActiveTopTab] = useState("Stock Update");
   const [category, setCategory] = useState([]);
   const [productCategory, setProductCategory] = useState([]);
   const [products, setProducts] = useState([]);
   const [productSize, setProductSize] = useState([]);
   const [filteredProducts, setFilteredProducts] = useState([]);
+
+  // Selected values for filters
   const [selectedCategory, setSelectedCategory] = useState("");
   const [selectedProductCategory, setSelectedProductCategory] = useState("");
+
+  // New product form state
   const [addingProduct, setAddingProduct] = useState({
     Product_ID: "",
     ProductCategory_ID: "",
@@ -32,23 +38,25 @@ const Inventory = () => {
     Stock: "",
     Image_Link: "",
   });
+
+  // Sizes for new product
   const [sizes, setSizes] = useState([{ Size: "", Price: "", Stock: "" }]);
 
-  // Fetch categories
+  // Fetch all product categories (main categories)
   useEffect(() => {
     getCategory()
       .then(setCategory)
       .catch((err) => console.error("Category error:", err));
   }, []);
 
-  // Fetch product categories
+  // Fetch sub-categories (product categories)
   useEffect(() => {
     getProductCategory()
       .then(setProductCategory)
       .catch((err) => console.error("ProductCategory error:", err));
   }, []);
 
-  // Update ProductCategory_ID when selection changes
+  // Link selected product category with the product being added
   useEffect(() => {
     setAddingProduct((prev) => ({
       ...prev,
@@ -56,6 +64,7 @@ const Inventory = () => {
     }));
   }, [selectedProductCategory]);
 
+  // Fetch stock for selected product category and sizes
   const searchStock = () => {
     getStock(selectedProductCategory)
       .then(setProducts)
@@ -65,7 +74,7 @@ const Inventory = () => {
       .catch((err) => console.error("Size error:", err));
   };
 
-  // Update displayed productSize when stock/products load
+  // Filter product sizes for only loaded products
   useEffect(() => {
     const updated = productSize.filter((size) =>
       products.some((p) => p.Product_ID === size.Product_ID)
@@ -73,6 +82,7 @@ const Inventory = () => {
     setFilteredProducts(updated);
   }, [products, productSize]);
 
+  // Update stock values for listed sizes
   const handleStockChange = () => {
     filteredProducts.forEach((product) => {
       updateStock(product.Size_ID, parseInt(product.Stock)).catch((err) => {
@@ -82,6 +92,7 @@ const Inventory = () => {
     alert("Stock updated successfully!");
   };
 
+  // Submit form to add a new product with its sizes
   const submitProduct = async (e) => {
     e.preventDefault();
     const {
@@ -92,16 +103,16 @@ const Inventory = () => {
       Image_Link,
     } = addingProduct;
 
-  if (!Product_ID || !ProductCategory_ID || !Product_Name || !Image_Link || sizes.length === 0) {
+    if (!Product_ID || !ProductCategory_ID || !Product_Name || !Image_Link || sizes.length === 0) {
       alert("Please fill in all required fields and at least one size.");
       return;
     }
 
     try {
-      await addProduct(addingProduct);
-      await addImage({ Product_ID, Image_Link });
+      await addProduct(addingProduct); // Add base product
+      await addImage({ Product_ID, Image_Link }); // Upload image
 
-       for (const s of sizes) {
+      for (const s of sizes) {
         if (!s.Size || !s.Price || !s.Stock) continue;
         await addSize({
           Product_ID,
@@ -111,8 +122,7 @@ const Inventory = () => {
         });
       }
 
-
-       alert("Product and sizes added successfully!");
+      alert("Product and sizes added successfully!");
       setAddingProduct({
         Product_ID: "",
         ProductCategory_ID: "",
@@ -121,29 +131,30 @@ const Inventory = () => {
         Image_Link: "",
       });
       setSizes([{ Size: "", Price: "", Stock: "" }]);
-      searchStock();
+      searchStock(); // Refresh inventory
     } catch (error) {
       console.error("Error adding product:", error);
       alert("Error adding product.");
     }
   };
-      
 
+  // Remove a product completely including its image
   const submitRemoveProduct = async (Size_ID, Product_ID) => {
     try {
       await removeSize(Size_ID);
       await removeProduct(Product_ID);
       await removeImage(Product_ID);
       alert("Product removed successfully.");
-      searchStock();
+      searchStock(); // Refresh after removal
     } catch (error) {
       console.error("Remove error:", error);
       alert("Error removing product.");
     }
   };
+
   return (
     <div className="container-fluid p-4">
-      {/* Top Tabs */}
+      {/* Tabs for switching between inventory views */}
       <div className="d-flex gap-4 mb-3">
         {topTabs.map((tab) => (
           <span
@@ -163,9 +174,10 @@ const Inventory = () => {
 
       <h2>Inventory</h2>
 
-      {/* Filter */}
+      {/* Filter Section */}
       <div className="card p-3 mb-4">
         <div className="row">
+          {/* Category Dropdown */}
           <div className="col-md-4">
             <label>Select Category</label>
             <select
@@ -182,6 +194,7 @@ const Inventory = () => {
             </select>
           </div>
 
+          {/* Product Category Dropdown */}
           <div className="col-md-4">
             <label>Select Product Category</label>
             <select
@@ -200,6 +213,7 @@ const Inventory = () => {
             </select>
           </div>
 
+          {/* Search Button */}
           {activeTopTab !== "Add Item" && (
             <div className="col-md-4 d-flex align-items-end">
               <button
@@ -214,7 +228,7 @@ const Inventory = () => {
         </div>
       </div>
 
-      {/* Stock Table */}
+      {/* Stock Update Table */}
       {activeTopTab === "Stock Update" && (
         <div className="card p-3">
           <h5>Update Stock</h5>
@@ -268,12 +282,14 @@ const Inventory = () => {
           </button>
         </div>
       )}
-   {/* Add Item */}
+
+      {/* Add New Item Form */}
       {activeTopTab === "Add Item" && (
         <div className="card p-4">
           <h5>Add New Product</h5>
           <form onSubmit={submitProduct}>
             <div className="row">
+              {/* Product Details */}
               <div className="col-md-6">
                 <label>Product ID</label>
                 <input
@@ -316,6 +332,7 @@ const Inventory = () => {
                 />
               </div>
 
+              {/* Sizes Section */}
               <div className="col-md-6">
                 <label className="fw-bold">Sizes</label>
                 {sizes.map((s, index) => (
@@ -395,9 +412,7 @@ const Inventory = () => {
         </div>
       )}
 
-    
-
-      {/* Remove Item */}
+      {/* Remove Item Section */}
       {activeTopTab === "Remove Item" && (
         <div className="card p-3">
           <h5>Remove Products</h5>
